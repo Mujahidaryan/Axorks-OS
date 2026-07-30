@@ -1,0 +1,51 @@
+# ============================================================
+# AXORKS OS — Local Development Services
+# ============================================================
+#
+# Usage:
+#   docker compose up -d         Start services
+#   docker compose down          Stop services
+#   docker compose down -v       Stop and remove volumes
+#
+# Production uses Neon (PostgreSQL) and Upstash (Redis).
+# This file is for LOCAL DEVELOPMENT ONLY.
+# ============================================================
+
+services:
+  # ──────────────────────────────────────
+  # PostgreSQL 16
+  # ──────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: axorks-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: axorks
+      POSTGRES_PASSWORD: axorks_dev_password
+      POSTGRES_DB: axorks_os
+    volumes:
+      - ./docker/data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U axorks -d axorks_os"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ──────────────────────────────────────
+  # Redis 7
+  # ──────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: axorks-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./docker/data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
