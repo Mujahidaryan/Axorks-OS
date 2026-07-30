@@ -1,5 +1,3 @@
-"""GitHub OAuth callback — wrapped in Suspense for useSearchParams."""
-
 import { Suspense } from "react";
 import DevOAuthCallbackInner from "./callback-inner";
 

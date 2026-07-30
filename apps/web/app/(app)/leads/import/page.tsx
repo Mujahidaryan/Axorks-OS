@@ -21,12 +21,12 @@ const LEAD_FIELDS = [
   { id: "status", label: "Status" },
 ];
 
-export function CSVImportPage() {
+function CSVImportPage() {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [filename, setFilename] = useState("");
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
-  const [csvRows, setCsvRows] = useState<dict<string, string>[]>([]);
+  const [csvRows, setCsvRows] = useState<Record<string, string>[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [importResult, setImportResult] = useState<any>(null);

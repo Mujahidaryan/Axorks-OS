@@ -1,6 +1,8 @@
-import { apiClient, setAccessToken } from "./api-client";
+import { apiClient, setAccessToken, getAccessToken } from "./api-client";
 
-export async function login(email: string, password: str) {
+export { setAccessToken, getAccessToken };
+
+export async function login(email: string, password: string) {
   const data = await apiClient("/api/v1/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
@@ -13,7 +15,7 @@ export async function login(email: string, password: str) {
 
 export async function register(params: {
   email: string;
-  password: str;
+  password: string;
   first_name?: string;
   last_name?: string;
 }) {
