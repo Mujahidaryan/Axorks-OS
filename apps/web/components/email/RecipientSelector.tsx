@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { X, Plus, User, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useState, useRef } from "react";
+import { X, User, Plus } from "lucide-react";
 
 interface RecipientSelectorProps {
   label: string;
@@ -27,18 +26,10 @@ export function RecipientSelector({
 }: RecipientSelectorProps) {
   const [input, setInput] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if ((e.key === "Enter" || e.key === ",") && input.trim()) {
-      e.preventDefault();
-      addEmail(input.trim());
-    } else if (e.key === "Backspace" && !input && value.length > 0) {
-      removeEmail(value.length - 1);
-    }
-  };
+  const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const addEmail = (email: string) => {
-    const cleaned = email.toLowerCase().trim();
+    const cleaned = email.toLowerCase().trim().replace(/[,;]/g, "");
     if (cleaned && !value.includes(cleaned)) {
       onChange([...value, cleaned]);
     }
@@ -50,6 +41,31 @@ export function RecipientSelector({
     onChange(value.filter((_, i) => i !== index));
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (["Enter", ",", ";", "Tab", " "].includes(e.key) && input.trim()) {
+      e.preventDefault();
+      addEmail(input.trim());
+    } else if (e.key === "Backspace" && !input && value.length > 0) {
+      removeEmail(value.length - 1);
+    }
+  };
+
+  const handleBlur = () => {
+    blurTimeoutRef.current = setTimeout(() => {
+      if (input.trim()) {
+        addEmail(input.trim());
+      }
+      setShowDropdown(false);
+    }, 150);
+  };
+
+  const handleFocus = () => {
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+    }
+    setShowDropdown(true);
+  };
+
   const filteredSuggestions = SAMPLE_SUGGESTIONS.filter(
     (item) =>
       !value.includes(item.email) &&
@@ -57,6 +73,11 @@ export function RecipientSelector({
         item.name.toLowerCase().includes(input.toLowerCase()) ||
         item.company.toLowerCase().includes(input.toLowerCase()))
   );
+
+  const isInputNewEmail =
+    input.trim().length > 0 &&
+    !value.includes(input.trim().toLowerCase()) &&
+    !SAMPLE_SUGGESTIONS.some((s) => s.email.toLowerCase() === input.trim().toLowerCase());
 
   return (
     <div className="relative flex flex-col gap-1.5">
@@ -86,21 +107,41 @@ export function RecipientSelector({
             setInput(e.target.value);
             setShowDropdown(true);
           }}
-          onFocus={() => setShowDropdown(true)}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           placeholder={value.length === 0 ? placeholder : ""}
           className="flex-1 bg-transparent border-none text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none min-w-[180px]"
         />
       </div>
 
-      {/* Autocomplete Dropdown */}
-      {showDropdown && input.length > 0 && filteredSuggestions.length > 0 && (
+      {/* Autocomplete & Manual Add Dropdown */}
+      {showDropdown && input.length > 0 && (
         <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-xl max-h-48 overflow-y-auto py-1">
+          {/* Custom Typed Email Option */}
+          {isInputNewEmail && (
+            <button
+              type="button"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                addEmail(input.trim());
+              }}
+              className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 text-violet-600 dark:text-violet-400 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium border-b border-slate-100 dark:border-slate-800"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add custom email: <strong className="underline">{input.trim()}</strong></span>
+            </button>
+          )}
+
+          {/* Sample Suggestions */}
           {filteredSuggestions.map((item) => (
             <button
               key={item.email}
               type="button"
-              onClick={() => addEmail(item.email)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                addEmail(item.email);
+              }}
               className="w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition"
             >
               <div className="flex items-center gap-2">
