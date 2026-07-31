@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import { setAccessToken } from "@/lib/auth";
 import { toast } from "sonner";
 
-export default function Verify2FAPage() {
+function Verify2FAForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const userId = searchParams.get("user_id");
@@ -62,5 +62,13 @@ export default function Verify2FAPage() {
         </button>
       </form>
     </div>
+  );
+}
+
+export default function Verify2FAPage() {
+  return (
+    <Suspense fallback={<div className="text-center p-8 text-slate-400">Loading 2FA...</div>}>
+      <Verify2FAForm />
+    </Suspense>
   );
 }

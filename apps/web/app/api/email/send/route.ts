@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { resend, RESEND_FROM_EMAIL } from "@/lib/email/resend";
 import { EmailSendSchema } from "@/lib/validators/email";
-import { addEmailToHistory } from "../history/route";
+import { addEmailToHistory } from "@/lib/email/store";
 
 export async function POST(req: NextRequest) {
   try {

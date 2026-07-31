@@ -73,12 +73,12 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
       sections: currentSections,
       pricing: {
         items: currentPricing,
-        subtotal: currentPricing.reduce((sum, item) => sum + (Number(item.amount) || 0), 0),
+        subtotal: currentPricing.reduce((sum: number, item: any) => sum + (Number(item.amount) || 0), 0),
         tax: 0,
-        total: currentPricing.reduce((sum, item) => sum + (Number(item.amount) || 0), 0),
+        total: currentPricing.reduce((sum: number, item: any) => sum + (Number(item.amount) || 0), 0),
       },
     };
-    const totalVal = currentPricing.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    const totalVal = currentPricing.reduce((sum: number, item: any) => sum + (Number(item.amount) || 0), 0);
     updateProposal.mutate({ content: updatedContent, total_value: totalVal });
   };
 
@@ -160,7 +160,7 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
                 </button>
               </div>
 
-              {currentSections.map((sec: any, idx: int) => (
+              {currentSections.map((sec: any, idx: number) => (
                 <div key={idx} className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
                   <div className="flex items-center justify-between">
                     <input
@@ -174,7 +174,7 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
                     />
                     <button
                       onClick={() => {
-                        const updated = currentSections.filter((_, i) => i !== idx);
+                        const updated = currentSections.filter((_: any, i: number) => i !== idx);
                         setSections(updated);
                       }}
                       className="p-1 text-slate-600 hover:text-red-400"
@@ -270,7 +270,7 @@ export default function ProposalDetailPage({ params }: { params: Promise<{ id: s
                         <td className="px-2 py-2">
                           <button
                             onClick={() => {
-                              const updated = currentPricing.filter((_, i) => i !== idx);
+                              const updated = currentPricing.filter((_: any, i: number) => i !== idx);
                               setPricingItems(updated);
                             }}
                             className="text-slate-600 hover:text-red-400"
