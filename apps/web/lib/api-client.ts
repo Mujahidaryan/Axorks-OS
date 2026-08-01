@@ -45,19 +45,48 @@ async function buildRequest(endpoint: string, options: FetchOptions = {}) {
     reqHeaders["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(url, {
-    headers: reqHeaders,
-    ...restOptions,
-  });
+  try {
+    const response = await fetch(url, {
+      headers: reqHeaders,
+      ...restOptions,
+    });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const message =
-      errorData?.errors?.[0]?.message || `HTTP Error ${response.status}`;
-    throw new Error(message);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const message =
+        errorData?.errors?.[0]?.message || errorData?.detail || `HTTP Error ${response.status}`;
+      throw new Error(message);
+    }
+
+    return response;
+  } catch (err: any) {
+    // If direct fetch to API_BASE_URL threw a network connection error (e.g. Failed to fetch)
+    // attempt relative Next.js API route fallback seamlessly
+    if (
+      (err.name === "TypeError" || err.message?.includes("Failed to fetch") || err.message?.includes("fetch failed")) &&
+      url !== endpoint
+    ) {
+      let relativeUrl = endpoint;
+      if (params) {
+        const searchParams = new URLSearchParams(params);
+        relativeUrl += `?${searchParams.toString()}`;
+      }
+
+      try {
+        const fallbackResponse = await fetch(relativeUrl, {
+          headers: reqHeaders,
+          ...restOptions,
+        });
+
+        if (fallbackResponse.ok) {
+          return fallbackResponse;
+        }
+      } catch (fallbackErr) {
+        // Fallback failed
+      }
+    }
+    throw err;
   }
-
-  return response;
 }
 
 export async function apiClient<T = any>(
