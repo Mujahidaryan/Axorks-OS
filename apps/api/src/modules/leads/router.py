@@ -22,11 +22,30 @@ from src.modules.leads.schemas import (
     LeadCreate,
     LeadRead,
     LeadUpdate,
+    PublicLeadCaptureRequest,
     ScoreLeadRequest,
 )
 from src.modules.leads.service import LeadService
 
 router = APIRouter(prefix="/api/v1/leads", tags=["Lead Intelligence"])
+
+
+@router.post("/public/capture")
+async def capture_public_lead(
+    data: PublicLeadCaptureRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Zero-cost public website / form / webhook lead ingestion route (unauthenticated)."""
+    service = LeadService(db)
+    lead = await service.capture_public_lead(data)
+    return success_response(
+        data={
+            "lead_id": str(lead.id),
+            "status": lead.status.value if lead.status else "new",
+            "message": "Lead successfully captured",
+        }
+    )
+
 
 
 @router.post("")

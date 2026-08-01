@@ -117,3 +117,24 @@ class CSVImportMappingRequest(BaseModel):
     filename: str
     column_mapping: dict[str, str]  # csv_col -> lead_field
     csv_rows: list[dict[str, str]]
+
+
+class PublicLeadCaptureRequest(BaseModel):
+    """Zero-cost public website / form / webhook lead capture schema."""
+    workspace_id: UUID | None = None
+    organization_id: UUID | None = None
+    business_name: str | None = None
+    decision_maker_name: str | None = None
+    decision_maker_title: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    website: str | None = None
+    industry: str | None = None
+    country: str | None = None
+    company_size: str | None = None
+    source: LeadSource = LeadSource.WEBSITE
+    source_detail: str | None = None
+    notes: str | None = None
+    tags: list[str] = []
+    custom_fields: dict = {}
+

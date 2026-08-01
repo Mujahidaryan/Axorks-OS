@@ -55,6 +55,52 @@ class LeadService:
         )
         return lead
 
+    async def capture_public_lead(
+        self, data: Any
+    ) -> Lead:
+        """Capture lead from public website form, quote request, or webhook (zero-cost)."""
+        org_id = data.organization_id
+        workspace_id = data.workspace_id
+
+        if not org_id or not workspace_id:
+            from src.modules.organizations.models import Organization
+            from src.modules.workspaces.models import Workspace
+            org_res = await self.db.execute(select(Organization).limit(1))
+            default_org = org_res.scalars().first()
+            if default_org:
+                org_id = org_id or default_org.id
+                ws_res = await self.db.execute(
+                    select(Workspace).where(Workspace.organization_id == default_org.id).limit(1)
+                )
+                default_ws = ws_res.scalars().first()
+                if default_ws:
+                    workspace_id = workspace_id or default_ws.id
+
+        if not org_id or not workspace_id:
+            import uuid
+            org_id = org_id or uuid.uuid4()
+            workspace_id = workspace_id or uuid.uuid4()
+
+        lead_dict = data.model_dump(exclude={"organization_id", "workspace_id"})
+        lead = Lead(
+            organization_id=org_id,
+            workspace_id=workspace_id,
+            status=LeadStatus.NEW,
+            **lead_dict,
+        )
+        lead = await self.repo.create(lead)
+
+        await self.activity_service.log_activity(
+            organization_id=org_id,
+            workspace_id=workspace_id,
+            entity_type="lead",
+            entity_id=lead.id,
+            actor_id=None,
+            action="public_capture",
+            metadata={"business_name": lead.business_name, "source": lead.source.value if lead.source else "website"},
+        )
+        return lead
+
     async def get_lead(self, lead_id: UUID, org_id: UUID) -> Lead:
         lead = await self.repo.get_by_id(lead_id, org_id)
         if not lead:
