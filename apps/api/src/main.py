@@ -22,6 +22,7 @@ from src.modules.deals.router import router as deals_router
 from src.modules.dev.router import router as dev_router
 from src.modules.finance.router import router as finance_router
 from src.modules.hr.router import router as hr_router
+from src.modules.iam.router import router as iam_router
 from src.modules.integrations.router import router as integrations_router
 from src.modules.knowledge.router import router as knowledge_router
 from src.modules.leads.router import router as leads_router
@@ -130,3 +131,6 @@ app.include_router(analytics_router)
 
 # Phase 17 routers
 app.include_router(integrations_router)
+
+# Enterprise IAM & RBAC router
+app.include_router(iam_router)

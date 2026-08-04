@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Target, Users, FolderKanban, BarChart3 } from "lucide-react";
+import { LayoutDashboard, Target, Users, FolderKanban, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const MOBILE_NAV_ITEMS = [
   { name: "Home", href: "/", icon: LayoutDashboard },
+  { name: "IAM", href: "/iam", icon: ShieldCheck },
   { name: "Leads", href: "/leads", icon: Target },
   { name: "CRM", href: "/crm/companies", icon: Users },
   { name: "Projects", href: "/projects", icon: FolderKanban },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
 ];
 
 export function MobileNav() {

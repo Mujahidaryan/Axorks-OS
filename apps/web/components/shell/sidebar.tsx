@@ -23,10 +23,12 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  ShieldCheck,
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "User Management & IAM", href: "/iam", icon: ShieldCheck },
   { name: "Leads", href: "/leads", icon: Target },
   {
     name: "CRM",
