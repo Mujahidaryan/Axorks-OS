@@ -14,6 +14,9 @@ import {
   ArrowRight,
   Sparkles,
   Plus,
+  Radio,
+  Globe,
+  Crown,
 } from "lucide-react";
 
 export default function IAMDashboardPage() {
@@ -27,18 +30,21 @@ export default function IAMDashboardPage() {
   }
 
   const d = dashboard || {
-    total_employees: 14,
-    online_employees: 9,
-    offline_employees: 3,
+    total_employees: 2,
+    online_employees: 1,
+    offline_employees: 1,
     locked_accounts: 0,
-    suspended_accounts: 1,
-    pending_invitations: 1,
-    todays_logins: 11,
+    suspended_accounts: 0,
+    pending_invitations: 0,
+    todays_logins: 3,
     failed_attempts: 0,
+    active_logged_in_users: [],
     recent_audit_logs: [],
     latest_joined: [],
     recent_recordings: [],
   };
+
+  const activeSessions = d.active_logged_in_users || [];
 
   return (
     <div className="space-y-6">
@@ -124,6 +130,59 @@ export default function IAMDashboardPage() {
         </div>
       </div>
 
+      {/* Real-time Currently Logged-in Users Section */}
+      <div className="glass p-5 rounded-2xl border border-emerald-500/30 space-y-4 bg-emerald-500/5">
+        <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3">
+          <div className="flex items-center gap-2">
+            <Radio className="w-4 h-4 text-emerald-500 animate-pulse" />
+            <h2 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+              Currently Logged-In Active Users ({activeSessions.length})
+            </h2>
+          </div>
+          <span className="text-[10px] text-emerald-500/80 font-mono">Live Telemetry</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {activeSessions.length === 0 ? (
+            <div className="text-xs text-slate-400 py-3 text-center col-span-full">
+              No active employee sessions currently online.
+            </div>
+          ) : (
+            activeSessions.map((s: any) => (
+              <div
+                key={s.id || s.user_id}
+                className="p-3.5 rounded-xl bg-slate-900/90 border border-emerald-500/30 flex items-center justify-between gap-3 text-xs"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="relative">
+                    <div className="w-9 h-9 rounded-full bg-emerald-500/20 text-emerald-400 font-bold flex items-center justify-center text-xs">
+                      {s.first_name ? s.first_name[0] : "U"}
+                    </div>
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 absolute bottom-0 right-0 border-2 border-slate-950 animate-ping" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-bold text-slate-100 truncate flex items-center gap-1">
+                      {s.name || s.username}
+                      {s.role === "Founder" && <Crown className="w-3 h-3 text-amber-500 inline" />}
+                    </div>
+                    <div className="text-[11px] text-slate-400 truncate">@{s.username} • {s.email}</div>
+                  </div>
+                </div>
+
+                <div className="text-right flex-shrink-0">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 block">
+                    {s.role}
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-mono mt-1 block flex items-center gap-1 justify-end">
+                    <Globe className="w-3 h-3 text-slate-400" /> {s.ip_address || "Online"}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
       {/* Main Responsive Split Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Employees */}
@@ -154,7 +213,7 @@ export default function IAMDashboardPage() {
                       <div className="font-semibold text-slate-900 dark:text-slate-100 truncate">
                         {u.first_name} {u.last_name}
                       </div>
-                      <div className="text-[11px] text-slate-500 truncate">{u.email}</div>
+                      <div className="text-[11px] text-slate-500 truncate">@{u.username} • {u.email}</div>
                     </div>
                   </div>
 

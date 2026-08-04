@@ -28,10 +28,17 @@ interface ApiEnvelope<T = unknown> {
 async function buildRequest(endpoint: string, options: FetchOptions = {}) {
   const { params, headers, ...restOptions } = options;
 
-  let url = `${API_BASE_URL}${endpoint}`;
+  const isBrowser = typeof window !== "undefined";
+  const isLocalhostApi = API_BASE_URL.includes("localhost:8000");
+  const isVercelHost = isBrowser && !window.location.hostname.includes("localhost");
+
+  // In production browser environment where API_BASE_URL points to localhost:8000,
+  // use relative endpoint directly to avoid CORS / connection refused network errors
+  let targetUrl = isVercelHost && isLocalhostApi ? endpoint : `${API_BASE_URL}${endpoint}`;
+
   if (params) {
     const searchParams = new URLSearchParams(params);
-    url += `?${searchParams.toString()}`;
+    targetUrl += `?${searchParams.toString()}`;
   }
 
   const token = getAccessToken();
@@ -46,7 +53,7 @@ async function buildRequest(endpoint: string, options: FetchOptions = {}) {
   }
 
   try {
-    const response = await fetch(url, {
+    const response = await fetch(targetUrl, {
       headers: reqHeaders,
       ...restOptions,
     });
@@ -60,11 +67,10 @@ async function buildRequest(endpoint: string, options: FetchOptions = {}) {
 
     return response;
   } catch (err: any) {
-    // If direct fetch to API_BASE_URL threw a network connection error (e.g. Failed to fetch)
-    // attempt relative Next.js API route fallback seamlessly
+    // If direct fetch to API_BASE_URL threw a network connection error, attempt relative fallback
     if (
       (err.name === "TypeError" || err.message?.includes("Failed to fetch") || err.message?.includes("fetch failed")) &&
-      url !== endpoint
+      targetUrl !== endpoint
     ) {
       let relativeUrl = endpoint;
       if (params) {
@@ -72,18 +78,21 @@ async function buildRequest(endpoint: string, options: FetchOptions = {}) {
         relativeUrl += `?${searchParams.toString()}`;
       }
 
-      try {
-        const fallbackResponse = await fetch(relativeUrl, {
-          headers: reqHeaders,
-          ...restOptions,
-        });
+      const fallbackResponse = await fetch(relativeUrl, {
+        headers: reqHeaders,
+        ...restOptions,
+      });
 
-        if (fallbackResponse.ok) {
-          return fallbackResponse;
-        }
-      } catch (fallbackErr) {
-        // Fallback failed
+      if (!fallbackResponse.ok) {
+        const fallbackErrorData = await fallbackResponse.json().catch(() => ({}));
+        const fallbackMessage =
+          fallbackErrorData?.errors?.[0]?.message ||
+          fallbackErrorData?.detail ||
+          `HTTP Error ${fallbackResponse.status}`;
+        throw new Error(fallbackMessage);
       }
+
+      return fallbackResponse;
     }
     throw err;
   }

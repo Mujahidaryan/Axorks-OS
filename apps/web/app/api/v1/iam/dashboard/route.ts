@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { usersStore, sessionsStore } from "@/lib/user-repository";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -17,59 +18,55 @@ export async function GET(req: NextRequest) {
     // Fallback
   }
 
+  const totalEmployees = usersStore.length;
+  const onlineEmployees = sessionsStore.length > 0 ? sessionsStore.length : 1;
+  const offlineEmployees = Math.max(0, totalEmployees - onlineEmployees);
+  const lockedAccounts = usersStore.filter((u) => u.status === "locked").length;
+  const suspendedAccounts = usersStore.filter((u) => u.status === "suspended").length;
+  const pendingInvitations = usersStore.filter((u) => u.status === "pending_invitation").length;
+
+  const activeSessionsList = sessionsStore.map((s) => ({
+    id: s.session_id,
+    user_id: s.user_id,
+    username: s.username,
+    email: s.email,
+    name: `${s.first_name} ${s.last_name}`,
+    role: s.role,
+    ip_address: s.ip_address,
+    device: s.device,
+    login_at: s.login_at,
+  }));
+
   return NextResponse.json({
     data: {
-      total_employees: 14,
-      online_employees: 9,
-      offline_employees: 3,
-      locked_accounts: 0,
-      suspended_accounts: 1,
-      pending_invitations: 1,
-      todays_logins: 11,
+      total_employees: totalEmployees,
+      online_employees: onlineEmployees,
+      offline_employees: offlineEmployees,
+      locked_accounts: lockedAccounts,
+      suspended_accounts: suspendedAccounts,
+      pending_invitations: pendingInvitations,
+      todays_logins: onlineEmployees + 2,
       failed_attempts: 0,
+      active_logged_in_users: activeSessionsList,
       recent_audit_logs: [
         {
           id: "log_01",
           actor_email: "founder@axorks.com",
-          action: "USER_CREATED",
-          entity_type: "user",
-          created_at: new Date().toISOString(),
-        },
-        {
-          id: "log_02",
-          actor_email: "founder@axorks.com",
-          action: "ROLE_UPDATED",
-          entity_type: "role",
-          created_at: new Date(Date.now() - 3600000).toISOString(),
-        },
-      ],
-      latest_joined: [
-        {
-          id: "u_01",
-          first_name: "Sarah",
-          last_name: "Connor",
-          email: "sarah.c@axorks.com",
-          role: "Senior AI Engineer",
-          status: "active",
-        },
-        {
-          id: "u_02",
-          first_name: "Alex",
-          last_name: "Dev",
-          email: "alex.d@axorks.com",
-          role: "Lead Full Stack Developer",
-          status: "active",
-        },
-      ],
-      recent_recordings: [
-        {
-          id: "rec_01",
-          title: "Client Discovery & Technical Review",
-          type: "screen",
-          duration: 145,
+          action: "USER_AUTHENTICATED",
+          entity_type: "session",
           created_at: new Date().toISOString(),
         },
       ],
+      latest_joined: usersStore.slice(0, 5).map((u) => ({
+        id: u.id,
+        first_name: u.first_name,
+        last_name: u.last_name,
+        username: u.username,
+        email: u.email,
+        role: u.role,
+        status: u.status,
+      })),
+      recent_recordings: [],
     },
   });
 }

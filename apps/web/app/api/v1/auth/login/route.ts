@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { findUserByIdentifier, recordLoginSession, usersStore } from "@/lib/user-repository";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-const FOUNDER_USERNAME = process.env.FOUNDER_USERNAME || "muhammad.mujahid";
-const FOUNDER_EMAIL = process.env.FOUNDER_EMAIL || "mujahidaryan222149@gmail.com";
-const FOUNDER_PASSWORD = process.env.FOUNDER_PASSWORD || "Princearyan1#@#@";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const identifier = (body.identifier || body.email || body.username || "").trim().toLowerCase();
     const password = body.password || "";
+
+    if (!identifier || !password) {
+      return NextResponse.json(
+        { errors: [{ message: "Please provide both username/email and password" }] },
+        { status: 400 }
+      );
+    }
 
     // 1. Try FastAPI backend first
     try {
@@ -28,50 +32,41 @@ export async function POST(req: NextRequest) {
       // Backend not running, use fallback auth handler
     }
 
-    // 2. Founder check (matches Username OR Email + Password)
-    const isFounderMatch =
-      (identifier === FOUNDER_USERNAME.toLowerCase() || identifier === FOUNDER_EMAIL.toLowerCase()) &&
-      password === FOUNDER_PASSWORD;
+    // 2. Find user in central repository
+    let user = findUserByIdentifier(identifier);
 
-    if (isFounderMatch) {
-      const mockToken = `jwt_founder_session_${Date.now()}`;
+    if (user) {
+      // Password match check
+      if (user.password && user.password !== password) {
+        return NextResponse.json(
+          { errors: [{ message: "Invalid username/email or password" }] },
+          { status: 401 }
+        );
+      }
+
+      // Record active login session
+      const session = recordLoginSession(user, "127.0.0.1", "Web Browser");
+      const mockToken = `jwt_session_${user.id}_${Date.now()}`;
+
       return NextResponse.json({
         data: {
           access_token: mockToken,
           token_type: "bearer",
           user: {
-            id: "user_founder_01",
-            username: FOUNDER_USERNAME,
-            email: FOUNDER_EMAIL,
-            first_name: "Muhammad",
-            last_name: "Mujahid",
-            role: "Founder",
-            department: "Management",
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            first_name: user.first_name,
+            last_name: user.last_name,
+            role: user.role,
+            department: user.department,
           },
+          session,
         },
       });
     }
 
-    // 3. Employee check from mock/local store
-    if (identifier === "sarah" || identifier === "sarah@axorks.com") {
-      return NextResponse.json({
-        data: {
-          access_token: `jwt_employee_session_${Date.now()}`,
-          token_type: "bearer",
-          user: {
-            id: "user_emp_02",
-            username: "sarah",
-            email: "sarah@axorks.com",
-            first_name: "Sarah",
-            last_name: "Connor",
-            role: "Co-Founder",
-            department: "AI Department",
-          },
-        },
-      });
-    }
-
-    // 4. Invalid credentials
+    // 3. User not found
     return NextResponse.json(
       { errors: [{ message: "Invalid username/email or password" }] },
       { status: 401 }
