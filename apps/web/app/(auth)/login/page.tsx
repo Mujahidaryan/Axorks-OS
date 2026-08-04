@@ -2,13 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/auth";
 import { toast } from "sonner";
+import { Lock, User, ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -16,83 +18,117 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await login(email, password);
-      if (res.requires_2fa) {
+      const res = await login(identifier, password);
+      if (res?.requires_2fa) {
         router.push(`/verify-2fa?user_id=${res.user_id}`);
       } else {
         toast.success("Welcome back to Axorks OS");
         router.push("/");
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to sign in");
+      toast.error(err.message || "Invalid username/email or password");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="glass p-8 rounded-2xl shadow-2xl border border-slate-800">
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-violet-600/30 text-violet-400 font-bold text-xl mb-4 border border-violet-500/30">
-          AX
-        </div>
-        <h1 className="text-2xl font-bold tracking-tight">Sign in to Axorks OS</h1>
-        <p className="text-slate-400 text-sm mt-1">
-          Enter your credentials to access your operating system
-        </p>
+    <div className="relative min-h-screen w-full flex items-center justify-center p-4 overflow-hidden bg-slate-950">
+      {/* High-Resolution Axorks Office Background Image */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/images/AxorkOffice.png"
+          alt="Axorks Software House Office"
+          fill
+          priority
+          className="object-cover object-center filter brightness-[0.45] contrast-[1.1] scale-105 transition-all duration-1000"
+        />
+        {/* Subtle Dark Ambient Overlays */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-transparent to-slate-950/80" />
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-xs font-medium text-slate-400 mb-1">
-            Email Address
-          </label>
-          <input
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="alex@axorks.com"
-            className="w-full px-4 py-2.5 bg-slate-900/60 border border-slate-800 rounded-lg text-sm focus:outline-none focus:border-violet-500 transition"
-          />
-        </div>
+      {/* Centered Glassmorphism Login Card */}
+      <div className="relative z-10 w-full max-w-md">
+        <div className="glass p-8 rounded-3xl border border-white/10 backdrop-blur-2xl shadow-2xl shadow-black/80 space-y-6">
+          {/* Header & Axorks Branding */}
+          <div className="text-center space-y-2">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-violet-600 to-indigo-600 text-white font-black text-2xl shadow-xl shadow-violet-600/40 border border-white/20 mb-2">
+              AX
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
+              Axorks OS <Sparkles className="w-4 h-4 text-violet-400" />
+            </h1>
+            <p className="text-slate-300 text-xs max-w-xs mx-auto">
+              Enterprise Operating System for Software Agencies
+            </p>
+          </div>
 
-        <div>
-          <div className="flex justify-between items-center mb-1">
-            <label className="block text-xs font-medium text-slate-400">
-              Password
-            </label>
-            <Link
-              href="/forgot-password"
-              className="text-xs text-violet-400 hover:underline"
+          {/* Login Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Username or Email
+              </label>
+              <div className="relative">
+                <User className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+                <input
+                  type="text"
+                  required
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder="Username or email address..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 border border-slate-700/60 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition"
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="block text-xs font-semibold text-slate-300">
+                  Password
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-violet-400 hover:text-violet-300 transition"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <div className="relative">
+                <Lock className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 border border-slate-700/60 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-violet-600/30 flex items-center justify-center gap-2 transition disabled:opacity-50 mt-2"
             >
-              Forgot password?
+              {loading ? "Authenticating..." : "Sign in to Axorks OS"}
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </form>
+
+          {/* Request Access & Footer */}
+          <div className="pt-4 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
+            <span>Need access?</span>
+            <Link
+              href="/register"
+              className="text-violet-400 font-semibold hover:text-violet-300 transition flex items-center gap-1"
+            >
+              Request Access <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
-          <input
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••••••"
-            className="w-full px-4 py-2.5 bg-slate-900/60 border border-slate-800 rounded-lg text-sm focus:outline-none focus:border-violet-500 transition"
-          />
         </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-medium text-sm rounded-lg shadow-lg shadow-violet-600/20 transition disabled:opacity-50"
-        >
-          {loading ? "Signing in..." : "Sign in"}
-        </button>
-      </form>
-
-      <div className="text-center mt-6 text-xs text-slate-400">
-        Don&apos;t have an account?{" "}
-        <Link href="/register" className="text-violet-400 font-medium hover:underline">
-          Create one
-        </Link>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
+import { useAuthStore } from "@/stores/auth-store";
 import { toast } from "sonner";
 import Link from "next/link";
 import {
@@ -12,7 +13,6 @@ import {
   Grid,
   Lock,
   Unlock,
-  ShieldAlert,
   UserCheck,
   KeyRound,
   MoreVertical,
@@ -21,10 +21,12 @@ import {
   Mail,
   Building2,
   Crown,
+  User,
 } from "lucide-react";
 
 export default function IAMUsersPage() {
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuthStore();
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -33,14 +35,18 @@ export default function IAMUsersPage() {
   const [activeUserMenu, setActiveUserMenu] = useState<string | null>(null);
 
   // Form State
-  const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [department, setDepartment] = useState("Development");
   const [designation, setDesignation] = useState("Software Engineer");
   const [role, setRole] = useState("Software Engineer");
   const [employmentType, setEmploymentType] = useState("full_time");
+
+  const isFounder = currentUser?.role === "Founder" || currentUser?.role === "founder";
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["iam-users", search, statusFilter, roleFilter],
@@ -61,13 +67,15 @@ export default function IAMUsersPage() {
         body: JSON.stringify(body),
       }),
     onSuccess: () => {
-      toast.success("Employee profile created successfully");
+      toast.success("Employee profile & credentials created successfully");
       queryClient.invalidateQueries({ queryKey: ["iam-users"] });
       queryClient.invalidateQueries({ queryKey: ["iam-dashboard"] });
       setCreateOpen(false);
-      setEmail("");
       setFirstName("");
       setLastName("");
+      setUsername("");
+      setEmail("");
+      setPassword("");
       setPhone("");
     },
     onError: (err: any) => {
@@ -91,10 +99,17 @@ export default function IAMUsersPage() {
 
   const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isFounder) {
+      toast.error("Only Founder has authorization to create new user accounts");
+      return;
+    }
+
     createMutation.mutate({
-      email,
       first_name: firstName,
       last_name: lastName,
+      username: username || firstName.toLowerCase(),
+      email,
+      password: password || "AxorksPass123!",
       phone,
       department,
       designation,
@@ -117,12 +132,14 @@ export default function IAMUsersPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => setCreateOpen(true)}
-          className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-lg shadow-violet-600/20 transition"
-        >
-          <Plus className="w-4 h-4" /> Add Employee
-        </button>
+        {isFounder && (
+          <button
+            onClick={() => setCreateOpen(true)}
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold shadow-lg shadow-violet-600/20 transition"
+          >
+            <Plus className="w-4 h-4" /> Create Employee
+          </button>
+        )}
       </div>
 
       {/* Filter & View Switcher */}
@@ -134,7 +151,7 @@ export default function IAMUsersPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, email, department..."
+              placeholder="Search by name, username, email, department..."
               className="w-full pl-9 pr-3 py-1.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs focus:outline-none focus:border-violet-500"
             />
           </div>
@@ -206,7 +223,7 @@ export default function IAMUsersPage() {
                           <Crown className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
                         )}
                       </div>
-                      <div className="text-[11px] text-slate-500">{u.designation || u.role}</div>
+                      <div className="text-[11px] text-slate-500">@{u.username || u.first_name.toLowerCase()} • {u.designation || u.role}</div>
                     </div>
                   </div>
 
@@ -221,33 +238,39 @@ export default function IAMUsersPage() {
 
                     {activeUserMenu === u.id && (
                       <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 py-1 text-xs">
-                        <button
-                          onClick={() => actionMutation.mutate({ userId: u.id, action: "impersonate" })}
-                          className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-violet-600 dark:text-violet-400"
-                        >
-                          <KeyRound className="w-3.5 h-3.5" /> Impersonate
-                        </button>
-                        {u.status === "suspended" ? (
+                        {isFounder && (
                           <button
-                            onClick={() => actionMutation.mutate({ userId: u.id, action: "reactivate" })}
-                            className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-emerald-500"
+                            onClick={() => actionMutation.mutate({ userId: u.id, action: "impersonate" })}
+                            className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-violet-600 dark:text-violet-400"
                           >
-                            <UserCheck className="w-3.5 h-3.5" /> Reactivate
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => actionMutation.mutate({ userId: u.id, action: "suspend" })}
-                            className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-amber-500"
-                          >
-                            <Lock className="w-3.5 h-3.5" /> Suspend
+                            <KeyRound className="w-3.5 h-3.5" /> Impersonate
                           </button>
                         )}
-                        <button
-                          onClick={() => actionMutation.mutate({ userId: u.id, action: "reset-password" })}
-                          className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-600 dark:text-slate-300"
-                        >
-                          <Unlock className="w-3.5 h-3.5" /> Reset Password
-                        </button>
+                        {u.role !== "Founder" && isFounder && (
+                          <>
+                            {u.status === "suspended" ? (
+                              <button
+                                onClick={() => actionMutation.mutate({ userId: u.id, action: "reactivate" })}
+                                className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-emerald-500"
+                              >
+                                <UserCheck className="w-3.5 h-3.5" /> Reactivate
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => actionMutation.mutate({ userId: u.id, action: "suspend" })}
+                                className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-amber-500"
+                              >
+                                <Lock className="w-3.5 h-3.5" /> Suspend
+                              </button>
+                            )}
+                            <button
+                              onClick={() => actionMutation.mutate({ userId: u.id, action: "reset-password" })}
+                              className="w-full text-left px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2 text-slate-600 dark:text-slate-300"
+                            >
+                              <Unlock className="w-3.5 h-3.5" /> Reset Password
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -295,6 +318,7 @@ export default function IAMUsersPage() {
             <thead className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="text-left p-3 text-slate-500 font-semibold">Employee</th>
+                <th className="text-left p-3 text-slate-500 font-semibold">Username</th>
                 <th className="text-left p-3 text-slate-500 font-semibold">Department</th>
                 <th className="text-left p-3 text-slate-500 font-semibold">Role</th>
                 <th className="text-left p-3 text-slate-500 font-semibold">Status</th>
@@ -315,6 +339,7 @@ export default function IAMUsersPage() {
                       </div>
                     </div>
                   </td>
+                  <td className="p-3 font-mono text-slate-400">@{u.username || u.first_name.toLowerCase()}</td>
                   <td className="p-3 text-slate-600 dark:text-slate-400">{u.department || "General"}</td>
                   <td className="p-3 font-medium text-slate-800 dark:text-slate-200">{u.role}</td>
                   <td className="p-3">
@@ -323,12 +348,14 @@ export default function IAMUsersPage() {
                     </span>
                   </td>
                   <td className="p-3 text-right">
-                    <button
-                      onClick={() => actionMutation.mutate({ userId: u.id, action: "impersonate" })}
-                      className="px-2.5 py-1 bg-violet-600/10 text-violet-400 hover:bg-violet-600 hover:text-white rounded text-[11px] font-medium transition"
-                    >
-                      Impersonate
-                    </button>
+                    {isFounder && (
+                      <button
+                        onClick={() => actionMutation.mutate({ userId: u.id, action: "impersonate" })}
+                        className="px-2.5 py-1 bg-violet-600/10 text-violet-400 hover:bg-violet-600 hover:text-white rounded text-[11px] font-medium transition"
+                      >
+                        Impersonate
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -338,11 +365,11 @@ export default function IAMUsersPage() {
       )}
 
       {/* Add Employee Drawer / Modal */}
-      {createOpen && (
+      {createOpen && isFounder && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md glass p-6 rounded-2xl border border-slate-800 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h3 className="text-sm font-bold">Add New Employee Profile</h3>
+              <h3 className="text-sm font-bold">Create Employee Account & Credentials</h3>
               <button onClick={() => setCreateOpen(false)} className="p-1 text-slate-400 hover:text-slate-200">
                 <X className="w-4 h-4" />
               </button>
@@ -357,6 +384,7 @@ export default function IAMUsersPage() {
                     required
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="e.g. Sarah"
                     className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-none focus:border-violet-500"
                   />
                 </div>
@@ -367,19 +395,45 @@ export default function IAMUsersPage() {
                     required
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
+                    placeholder="e.g. Connor"
                     className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-none focus:border-violet-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-medium text-slate-400 mb-1">Email Address *</label>
+                <label className="block font-medium text-slate-400 mb-1">Username (unique for login) *</label>
+                <input
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="e.g. sarah"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-none focus:border-violet-500 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block font-medium text-slate-400 mb-1">Email Address (unique) *</label>
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  placeholder="e.g. sarah@axorks.com"
                   className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-none focus:border-violet-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-medium text-slate-400 mb-1">Password *</label>
+                <input
+                  type="text"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter employee password..."
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-none focus:border-violet-500 font-mono"
                 />
               </div>
 
@@ -418,13 +472,14 @@ export default function IAMUsersPage() {
                     onChange={(e) => setRole(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg focus:outline-none text-slate-200"
                   >
+                    <option value="Co-Founder">Co-Founder</option>
                     <option value="Software Engineer">Software Engineer</option>
                     <option value="Full Stack Developer">Full Stack Developer</option>
                     <option value="AI Engineer">AI Engineer</option>
                     <option value="Project Manager">Project Manager</option>
                     <option value="HR Manager">HR Manager</option>
                     <option value="Sales Manager">Sales Manager</option>
-                    <option value="Co-Founder">Co-Founder</option>
+                    <option value="Sales Executive">Sales Executive</option>
                   </select>
                 </div>
               </div>
@@ -442,7 +497,7 @@ export default function IAMUsersPage() {
                   disabled={createMutation.isPending}
                   className="px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-medium disabled:opacity-50"
                 >
-                  {createMutation.isPending ? "Creating..." : "Save Employee"}
+                  {createMutation.isPending ? "Creating Account..." : "Create Account"}
                 </button>
               </div>
             </form>
